@@ -494,16 +494,21 @@
       
       // ================= SUPABASE =================
       let supabaseClient = null;
-      try {
-        if (typeof supabase !== 'undefined' && supabase.createClient) {
-          supabaseClient = supabase.createClient(
-            'https://lztxaytvzaiytppyijsh.supabase.co',
-            'sb_publishable_-jk3vfecU7odssDwWOfhvQ_oaYJ056y'
-          );
+      const supabaseReady = (async () => {
+        try {
+          if (typeof supabase === 'undefined' || !supabase.createClient) return;
+          let env = { SUPABASE_URL: '', SUPABASE_ANON_KEY: '' };
+          try {
+            const r = await fetch('/api/env');
+            if (r.ok) env = await r.json();
+          } catch (_) {}
+          const url = env.SUPABASE_URL || 'https://lztxaytvzaiytppyijsh.supabase.co';
+          const key = env.SUPABASE_ANON_KEY || 'sb_publishable_-jk3vfecU7odssDwWOfhvQ_oaYJ056y';
+          supabaseClient = supabase.createClient(url, key);
+        } catch (e) {
+          console.log("Supabase indisponível, usando modo local.");
         }
-      } catch (e) {
-        console.log("Supabase indisponível, usando modo local.");
-      }
+      })();
 
       // ================= ROTEAMENTO HASH =================
       function obterRota() {
@@ -745,6 +750,7 @@
 
       // ================= DADOS =================
       async function carregarDadosDoBanco() {
+        try { await supabaseReady; } catch (_) {}
         if (!supabaseClient) return;
         try {
           const { data: pData } = await supabaseClient.from('produtos').select('*');
