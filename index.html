@@ -115,7 +115,7 @@
   </div>
 
   <!-- APP PRINCIPAL -->
-  <div id="app" style="display:none;" class="w-full min-h-screen bg-[#F9F9F9] lg:flex lg:bg-[#F0F0F0]">
+  <div id="app" style="display:none;" class="w-full min-h-screen bg-[#F9F9F9] flex flex-col lg:flex-row lg:bg-[#F0F0F0]">
     
     <!-- SIDEBAR (desktop) / BOTTOM NAV (mobile) -->
     <nav id="sidebar" class="
@@ -150,7 +150,7 @@
     </nav>
 
     <!-- CONTEÚDO PRINCIPAL -->
-    <div class="flex-1 lg:ml-20 flex flex-col min-h-screen">
+    <div class="flex-1 lg:ml-20 flex flex-col min-h-screen w-full min-w-0">
       
       <header class="bg-white/80 backdrop-blur-md px-4 py-4 sticky top-0 flex justify-between items-center z-30 border-b border-gray-50 lg:px-8 lg:py-5">
         <div class="flex items-center gap-2">
@@ -654,6 +654,7 @@
 
       let carrinho = [];
       let metodoSelecionado = "Pix";
+      let activePdvTab = "produtos";
       let produtoEmojiSelecionado = "🍦";
       let callbackConfirmar = null;
 
@@ -1554,45 +1555,57 @@
           const margem = p.preco > 0 ? ((p.preco - custo) / p.preco * 100) : 0;
           const lucroUn = (p.preco - custo);
           return `
-            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-50 hover:border-gray-200 transition-all">
-              <div class="flex items-start gap-3">
-                <div class="w-12 h-12 lg:w-14 lg:h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">${imgProd(p, 'w-full h-full object-cover')}</div>
+            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 hover:border-gray-200 transition-all flex flex-col gap-3">
+              <!-- Top section: Image, Title, Category and Status -->
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                  ${imgProd(p, 'w-full h-full object-cover')}
+                </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <h4 class="font-bold text-sm text-gray-800 truncate">${p.nome}</h4>
                     <span class="w-2 h-2 rounded-full ${statusCor} flex-shrink-0"></span>
                   </div>
                   <p class="text-[11px] text-gray-400 font-medium">${p.categoria}${p.tamanho ? ' · ' + p.tamanho : ''}</p>
-                  <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isBaixo ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}">
-                      <span class="w-1.5 h-1.5 rounded-full ${isBaixo ? 'bg-red-500' : 'bg-emerald-500'}"></span>
-                      ${p.estoque} un
-                    </span>
-                    <span class="text-[10px] font-bold text-gray-400">R$ ${p.preco.toFixed(2)}</span>
-                    <span class="text-[10px] text-gray-300">·</span>
-                    <span class="text-[10px] font-bold text-gray-400">C R$ ${custo.toFixed(2)}</span>
-                    <span class="text-[10px] font-bold ${margem >= 50 ? 'text-green-500' : margem >= 30 ? 'text-amber-500' : 'text-red-500'}">${margem.toFixed(1)}%</span>
-                  </div>
                 </div>
               </div>
-              <div class="flex items-center justify-between mt-3">
-                <div class="flex items-center gap-1.5">
-                  <button data-id="${p.id}" data-action="sub" class="btn-action-est btn-press w-9 h-9 lg:w-8 lg:h-8 bg-gray-50 rounded-xl text-xs font-bold flex items-center justify-center text-gray-500 hover:bg-gray-100">−</button>
-                  <button data-id="${p.id}" data-action="add" class="btn-action-est btn-press w-9 h-9 lg:w-8 lg:h-8 bg-gray-50 rounded-xl text-xs font-bold flex items-center justify-center text-gray-500 hover:bg-[#FCE7F3] hover:text-[#7C5862]">+</button>
-                  <button data-id="${p.id}" data-action="edit" class="btn-action-est btn-press w-9 h-9 lg:w-8 lg:h-8 bg-gray-50 rounded-xl text-xs flex items-center justify-center text-gray-400 hover:bg-gray-100">✏️</button>
-                  <button data-id="${p.id}" data-action="del" class="btn-action-est btn-press w-9 h-9 lg:w-8 lg:h-8 bg-red-50 rounded-xl text-xs flex items-center justify-center text-red-400 hover:bg-red-100">✕</button>
-                </div>
-                <span class="text-[10px] font-medium ${isBaixo ? 'text-red-500' : 'text-gray-400'}">${Math.round(pct)}%</span>
+
+              <!-- Middle section: Quantities, Price, Cost, Margin -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${isBaixo ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}">
+                  <span class="w-1.5 h-1.5 rounded-full ${isBaixo ? 'bg-red-500' : 'bg-emerald-500'}"></span>
+                  ${p.estoque} un
+                </span>
+                <span class="bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-bold">Venda: R$ ${p.preco.toFixed(2)}</span>
+                <span class="bg-gray-50 text-gray-400 px-2 py-0.5 rounded-full text-[10px] font-bold">Custo: R$ ${custo.toFixed(2)}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${margem >= 50 ? 'text-green-500' : margem >= 30 ? 'text-amber-500' : 'text-red-500'}">${margem.toFixed(1)}% Margem</span>
               </div>
-              <div class="mt-1.5 flex items-center gap-2">
-                <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+
+              <!-- Progress bar -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] text-gray-400">
+                  <span>Progresso Estoque</span>
+                  <span class="font-bold">${Math.round(pct)}%</span>
+                </div>
+                <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div class="h-full rounded-full transition-all ${corBarra}" style="width:${pct}%"></div>
                 </div>
+                <div class="flex justify-between text-[9px] text-gray-400 pt-0.5">
+                  <span>Lucro unitário: R$ ${lucroUn.toFixed(2)}</span>
+                  <span>Mín: ${p.estoque_minimo} · Ideal: ${p.estoque_minimo * 3}</span>
+                </div>
               </div>
-              <div class="flex justify-between text-[9px] text-gray-300 mt-0.5">
-                <span>Lucro: R$ ${lucroUn.toFixed(2)}/un</span>
-                <span>Mín: ${p.estoque_minimo}</span>
-                <span>${p.estoque_minimo * 3}</span>
+
+              <!-- Actions section: Clean, responsive buttons -->
+              <div class="flex items-center justify-between border-t border-gray-50 pt-3 mt-1 gap-2">
+                <div class="flex items-center gap-1.5">
+                  <button data-id="${p.id}" data-action="sub" class="btn-action-est btn-press w-9 h-9 bg-gray-50 rounded-xl text-xs font-bold flex items-center justify-center text-gray-500 hover:bg-gray-100" title="Remover 1">−</button>
+                  <button data-id="${p.id}" data-action="add" class="btn-action-est btn-press w-9 h-9 bg-gray-50 rounded-xl text-xs font-bold flex items-center justify-center text-gray-500 hover:bg-[#FCE7F3] hover:text-[#7C5862]" title="Adicionar 1">+</button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button data-id="${p.id}" data-action="edit" class="btn-action-est btn-press w-9 h-9 bg-gray-50 rounded-xl text-xs flex items-center justify-center text-gray-500 hover:bg-gray-100" title="Editar Produto">✏️</button>
+                  <button data-id="${p.id}" data-action="del" class="btn-action-est btn-press w-9 h-9 bg-red-50 rounded-xl text-xs flex items-center justify-center text-red-500 hover:bg-red-100" title="Excluir Produto">✕</button>
+                </div>
               </div>
             </div>
           `;
@@ -1755,7 +1768,7 @@
         const categorias = [...new Set(produtos.map(p => p.categoria))];
 
         el.innerHTML = `
-          <div class="space-y-4 lg:space-y-6 fade-in">
+          <div class="space-y-4 lg:space-y-6 fade-in relative">
             <div class="flex items-center justify-between">
               <div>
                 <h1 class="text-2xl font-bold text-[#4A373D]">Frente de Caixa</h1>
@@ -1766,8 +1779,20 @@
               </div>
             </div>
 
+            <!-- CONTROLE DE ABAS MOBILE -->
+            <div class="flex lg:hidden bg-white rounded-2xl p-1 border border-gray-100 shadow-sm w-full gap-1">
+              <button id="btn-tab-produtos" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-center transition-all">
+                🍦 Cardápio
+              </button>
+              <button id="btn-tab-carrinho" class="flex-1 py-2.5 rounded-xl text-xs font-bold text-center transition-all relative">
+                🛒 Carrinho
+                <span id="tab-carrinho-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold border-2 border-white scale-0 transition-transform">0</span>
+              </button>
+            </div>
+
             <div class="lg:grid lg:grid-cols-3 lg:gap-5 lg:items-start">
-              <div class="lg:col-span-2 space-y-3">
+              <!-- Aba de Produtos / Grid -->
+              <div id="pdv-produtos-col" class="lg:col-span-2 space-y-3">
                 <div class="flex gap-2">
                   <div class="relative flex-1">
                     <input type="text" id="pdv-busca" placeholder="Buscar produto..." class="w-full p-3.5 pl-10 bg-white border border-gray-100 rounded-2xl text-sm shadow-sm">
@@ -1783,15 +1808,24 @@
                   `).join('')}
                 </div>
 
-                <div id="pdv-grid" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-2">
+                <div id="pdv-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   ${produtos.map(p => {
                     const baixo = p.estoque <= p.estoque_minimo;
                     return `
-                      <button data-id="${p.id}" class="btn-prod-pdv btn-press bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex flex-col items-center gap-1 transition-all active:scale-95 active:border-[#7C5862] select-none touch-manipulation ${baixo ? 'border-l-2 border-l-red-400' : ''}">
-                        ${p.imagem ? `<img src="${p.imagem}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl object-cover">` : `<span class="text-2xl sm:text-3xl">${p.emoji || '🍦'}</span>`}
-                        <span class="text-[10px] sm:text-xs font-bold text-gray-700 text-center leading-tight line-clamp-2">${p.nome}${p.tamanho ? '<br><span class="text-[9px] sm:text-[10px] font-normal text-gray-400">' + p.tamanho + '</span>' : ''}</span>
-                        <span class="text-xs sm:text-sm font-extrabold text-[#7C5862]">R$ ${p.preco.toFixed(2)}</span>
-                        ${baixo ? `<span class="text-[8px] sm:text-[10px] text-red-500 font-bold">● ${p.estoque} un</span>` : `<span class="text-[8px] sm:text-[10px] text-gray-300">${p.estoque} un</span>`}
+                      <button data-id="${p.id}" class="btn-prod-pdv btn-press bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex flex-col items-center justify-between min-h-[125px] sm:min-h-[140px] gap-1.5 transition-all active:scale-95 active:border-[#7C5862] select-none touch-manipulation ${baixo ? 'border-l-2 border-l-red-400' : ''}">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                          ${p.imagem ? `<img src="${p.imagem}" class="w-full h-full object-cover">` : `<span class="text-2xl sm:text-3xl">${p.emoji || '🍦'}</span>`}
+                        </div>
+                        <div class="text-center w-full flex-1 flex flex-col justify-center">
+                          <span class="text-[10px] sm:text-xs font-bold text-gray-700 leading-tight line-clamp-2">${p.nome}</span>
+                          ${p.tamanho ? `<span class="text-[9px] font-normal text-gray-400">${p.tamanho}</span>` : ''}
+                        </div>
+                        <div class="text-center">
+                          <span class="text-xs sm:text-sm font-extrabold text-[#7C5862]">R$ ${p.preco.toFixed(2)}</span>
+                        </div>
+                        <div class="text-center mt-0.5">
+                          ${baixo ? `<span class="text-[8px] sm:text-[9px] text-red-500 font-bold">● ${p.estoque} un</span>` : `<span class="text-[8px] sm:text-[9px] text-gray-300">${p.estoque} un</span>`}
+                        </div>
                       </button>
                     `;
                   }).join('')}
@@ -1799,7 +1833,8 @@
                 </div>
               </div>
 
-              <div class="space-y-3 mt-3 lg:mt-0 lg:sticky lg:top-28">
+              <!-- Aba de Carrinho e Pagamento -->
+              <div id="pdv-carrinho-col" class="space-y-3 mt-3 lg:mt-0 lg:sticky lg:top-28">
                 <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
                   <div class="flex justify-between items-center mb-2">
                     <p class="text-xs font-semibold text-gray-500">Forma de Pagamento</p>
@@ -1836,6 +1871,17 @@
                 </div>
               </div>
             </div>
+
+            <!-- BARRA INFERIOR FLUTUANTE (MOBILE) -->
+            <div id="barra-flutuante-pdv" class="fixed bottom-16 left-4 right-4 z-40 lg:hidden transform translate-y-28 transition-transform duration-300 ease-out">
+              <button id="btn-flutuante-carrinho" class="w-full bg-[#7C5862] text-white py-3.5 px-4 rounded-2xl font-bold text-xs shadow-2xl flex items-center justify-between active:scale-98">
+                <span class="flex items-center gap-2">
+                  <span>🛒 Ver Carrinho</span>
+                  <span class="bg-white/20 px-2 py-0.5 rounded-full text-[10px]" id="barra-carrinho-count">0 itens</span>
+                </span>
+                <span id="barra-carrinho-total">R$ 0,00 →</span>
+              </button>
+            </div>
           </div>
         `;
 
@@ -1845,6 +1891,58 @@
         if (btnLimpar) btnLimpar.addEventListener('click', () => { carrinho = []; carregarVendas(el); });
 
         $('pdv-busca').addEventListener('input', filtrarGradePDV);
+
+        // Configuração de alternância de abas
+        const tabProd = $('btn-tab-produtos');
+        const tabCart = $('btn-tab-carrinho');
+        const colProd = $('pdv-produtos-col');
+        const colCart = $('pdv-carrinho-col');
+        const btnFlutuante = $('btn-flutuante-carrinho');
+
+        function alternarAbas(aba) {
+          activePdvTab = aba;
+          if (aba === 'produtos') {
+            tabProd.classList.add('bg-[#7C5862]', 'text-white', 'shadow-sm');
+            tabProd.classList.remove('text-gray-400');
+            tabCart.classList.remove('bg-[#7C5862]', 'text-white', 'shadow-sm');
+            tabCart.classList.add('text-gray-400');
+            colProd.classList.remove('hidden');
+            colCart.classList.add('hidden');
+          } else {
+            tabCart.classList.add('bg-[#7C5862]', 'text-white', 'shadow-sm');
+            tabCart.classList.remove('text-gray-400');
+            tabProd.classList.remove('bg-[#7C5862]', 'text-white', 'shadow-sm');
+            tabProd.classList.add('text-gray-400');
+            colProd.classList.add('hidden');
+            colCart.classList.remove('hidden');
+          }
+          atualizarLayoutAbas();
+        }
+
+        function atualizarLayoutAbas() {
+          const totalItens = carrinho.reduce((s, c) => s + c.quantidade, 0);
+          const barraFlutuante = $('barra-flutuante-pdv');
+          if (barraFlutuante) {
+            if (activePdvTab === 'produtos' && totalItens > 0) {
+              barraFlutuante.classList.remove('translate-y-28');
+            } else {
+              barraFlutuante.classList.add('translate-y-28');
+            }
+          }
+        }
+
+        tabProd.addEventListener('click', () => alternarAbas('produtos'));
+        tabCart.addEventListener('click', () => alternarAbas('carrinho'));
+        btnFlutuante.addEventListener('click', () => alternarAbas('carrinho'));
+
+        // Configura abas iniciais no mobile vs desktop
+        if (window.innerWidth < 1024) {
+          alternarAbas(activePdvTab);
+        } else {
+          // No desktop exibe tudo
+          colProd.classList.remove('hidden');
+          colCart.classList.remove('hidden');
+        }
 
         document.querySelectorAll('.btn-cat-pdv').forEach(btn => {
           btn.addEventListener('click', function() {
@@ -1907,6 +2005,11 @@
         const badge = $('carrinho-badge');
         const totalEl = $('pdv-total-geral');
         const btnLimpar = $('btn-limpar-carrinho');
+        const tabCount = $('tab-carrinho-count');
+        const barraFlutuante = $('barra-flutuante-pdv');
+        const barraCount = $('barra-carrinho-count');
+        const barraTotal = $('barra-carrinho-total');
+
         if (!container) return;
 
         if (carrinho.length === 0) {
@@ -1914,6 +2017,8 @@
           if (totalEl) totalEl.innerText = "R$ 0,00";
           if (badge) badge.innerText = "0 Itens";
           if (btnLimpar) btnLimpar.classList.add('hidden');
+          if (tabCount) { tabCount.innerText = "0"; tabCount.classList.add('scale-0'); }
+          if (barraFlutuante) barraFlutuante.classList.add('translate-y-28');
           return;
         }
 
@@ -1962,7 +2067,36 @@
         });
 
         if (totalEl) totalEl.innerText = `R$ ${total.toFixed(2)}`;
-        if (badge) { badge.innerText = `${totalItens} Itens`; badge.classList.remove('badge-bounce'); void badge.offsetWidth; badge.classList.add('badge-bounce'); }
+        if (badge) {
+          badge.innerText = `${totalItens} Itens`;
+          badge.classList.remove('badge-bounce');
+          void badge.offsetWidth;
+          badge.classList.add('badge-bounce');
+        }
+
+        // Atualiza abas e barra flutuante no mobile
+        if (tabCount) {
+          tabCount.innerText = totalItens;
+          if (totalItens > 0) {
+            tabCount.classList.remove('scale-0');
+          } else {
+            tabCount.classList.add('scale-0');
+          }
+        }
+        if (barraCount) {
+          barraCount.innerText = `${totalItens} ${totalItens === 1 ? 'item' : 'itens'}`;
+        }
+        if (barraTotal) {
+          barraTotal.innerText = `R$ ${total.toFixed(2)} →`;
+        }
+
+        if (barraFlutuante) {
+          if (activePdvTab === 'produtos' && totalItens > 0) {
+            barraFlutuante.classList.remove('translate-y-28');
+          } else {
+            barraFlutuante.classList.add('translate-y-28');
+          }
+        }
       }
 
       function finalizarFaturamentoPDV() {
