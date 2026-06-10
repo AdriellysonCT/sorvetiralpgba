@@ -16,6 +16,7 @@
     body { 
       font-family: 'Plus Jakarta Sans', sans-serif; 
       background-color: #F8F9FA;
+      overflow-x: hidden;
     }
     .nav-active { 
       background-color: #FCE7F3 !important; 
@@ -1445,39 +1446,39 @@
             </div>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
-              <div class="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-lg">📦</div>
-                  <div>
-                    <p class="text-[10px] text-gray-400 font-medium">Valor em Estoque</p>
-                    <p class="text-sm font-extrabold text-gray-800 mt-0.5">R$ ${valorTotalEstoque.toFixed(2)}</p>
+              <div class="bg-white rounded-2xl p-3 lg:p-4 border border-gray-50 shadow-sm">
+                <div class="flex items-center gap-2 lg:gap-3">
+                  <div class="w-8 h-8 lg:w-10 lg:h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-base lg:text-lg flex-shrink-0">📦</div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] lg:text-[10px] text-gray-400 font-medium truncate">Valor Estoque</p>
+                    <p class="text-xs lg:text-sm font-extrabold text-gray-800 mt-0.5 truncate">R$ ${valorTotalEstoque.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
-              <div class="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-lg">📋</div>
-                  <div>
-                    <p class="text-[10px] text-gray-400 font-medium">Total de Itens</p>
-                    <p class="text-sm font-extrabold text-gray-800 mt-0.5">${totalItens} un</p>
+              <div class="bg-white rounded-2xl p-3 lg:p-4 border border-gray-50 shadow-sm">
+                <div class="flex items-center gap-2 lg:gap-3">
+                  <div class="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 rounded-xl flex items-center justify-center text-base lg:text-lg flex-shrink-0">📋</div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] lg:text-[10px] text-gray-400 font-medium truncate">Total Itens</p>
+                    <p class="text-xs lg:text-sm font-extrabold text-gray-800 mt-0.5 truncate">${totalItens} un</p>
                   </div>
                 </div>
               </div>
-              <div class="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-lg">📈</div>
-                  <div>
-                    <p class="text-[10px] text-gray-400 font-medium">Lucro Potencial</p>
-                    <p class="text-sm font-extrabold text-green-600 mt-0.5">R$ ${lucroPotencial.toFixed(2)}</p>
+              <div class="bg-white rounded-2xl p-3 lg:p-4 border border-gray-50 shadow-sm">
+                <div class="flex items-center gap-2 lg:gap-3">
+                  <div class="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 rounded-xl flex items-center justify-center text-base lg:text-lg flex-shrink-0">📈</div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] lg:text-[10px] text-gray-400 font-medium truncate">Lucro Potencial</p>
+                    <p class="text-xs lg:text-sm font-extrabold text-green-600 mt-0.5 truncate">R$ ${lucroPotencial.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
-              <div class="bg-white rounded-2xl p-4 border border-gray-50 shadow-sm">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-lg">%</div>
-                  <div>
-                    <p class="text-[10px] text-gray-400 font-medium">Margem Média</p>
-                    <p class="text-sm font-extrabold text-green-600 mt-0.5">${margemMedia.toFixed(1)}%</p>
+              <div class="bg-white rounded-2xl p-3 lg:p-4 border border-gray-50 shadow-sm">
+                <div class="flex items-center gap-2 lg:gap-3">
+                  <div class="w-8 h-8 lg:w-10 lg:h-10 bg-green-50 rounded-xl flex items-center justify-center text-base lg:text-lg flex-shrink-0">%</div>
+                  <div class="min-w-0">
+                    <p class="text-[9px] lg:text-[10px] text-gray-400 font-medium truncate">Margem Média</p>
+                    <p class="text-xs lg:text-sm font-extrabold text-green-600 mt-0.5 truncate">${margemMedia.toFixed(1)}%</p>
                   </div>
                 </div>
               </div>
