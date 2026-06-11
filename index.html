@@ -587,7 +587,15 @@
           if (pData) produtos = JSON.parse(pData).map(p => ({ ...p, emoji: p.emoji || '🍦' }));
           if (vData) vendasRealizadas = JSON.parse(vData);
           if (cData) clientes = JSON.parse(cData);
-          if (rData) remessas = JSON.parse(rData);
+          if (rData) {
+            remessas = JSON.parse(rData);
+            // Remove remessas órfãs (cliente_id sem cliente correspondente)
+            if (clientes.length > 0) {
+              remessas = remessas.filter(r => clientes.some(c => c.id === r.cliente_id));
+            } else {
+              remessas = [];
+            }
+          }
           return true;
         } catch (e) { console.warn('Erro ao carregar dados locais', e); return false; }
       }
@@ -892,7 +900,11 @@
           const { data: cData } = await supabaseClient.from('clientes').select('*');
           if (cData && cData.length > 0) { clientes = cData; }
           const { data: rData } = await supabaseClient.from('remessas').select('*').order('data', { ascending: false });
-          if (rData && rData.length > 0) { remessas = rData; }
+          if (rData && rData.length > 0) {
+            remessas = clientes.length > 0
+              ? rData.filter(r => clientes.some(c => c.id === r.cliente_id))
+              : [];
+          }
           salvarDadosLocalmente();
         } catch (e) {
           console.error('carregarDadosDoBanco falhou, usando dados locais', e);
@@ -902,6 +914,9 @@
 
       function semearDadosIniciais() {
         produtos = [];
+        clientes = [];
+        remessas = [];
+        vendasRealizadas = [];
       }
 
       // ================= NAVEGAÇÃO =================
