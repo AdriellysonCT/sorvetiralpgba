@@ -158,6 +158,8 @@
           <span class="font-bold text-[#4A373D] text-lg tracking-tight">Sorveteria Lampião</span>
         </div>
         <div class="flex items-center gap-3">
+          <span id="status-conexao" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600">● Online</span>
+          <button id="btn-sync" title="Sincronizar agora" class="btn-press text-xs text-gray-400 hover:text-gray-600">🔄</button>
           <button id="btn-notificacoes" class="relative p-1 text-gray-500 lg:hover:text-gray-700">
             <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             🔔
@@ -563,93 +565,164 @@
 
       const telasValidas = { dashboard: 'dashboard', estoque: 'estoque', vendas: 'vendas', financeiro: 'financeiro', clientes: 'clientes' };
 
+      // ================= OFFLINE / PERSISTÊNCIA LOCAL =================
+      const LS_KEYS = { produtos: 'app_produtos', vendas: 'app_vendas', clientes: 'app_clientes', remessas: 'app_remessas' };
+      let estavaOffline = false;
+
+      function salvarDadosLocalmente() {
+        try {
+          localStorage.setItem(LS_KEYS.produtos, JSON.stringify(produtos));
+          localStorage.setItem(LS_KEYS.vendas, JSON.stringify(vendasRealizadas));
+          localStorage.setItem(LS_KEYS.clientes, JSON.stringify(clientes));
+          localStorage.setItem(LS_KEYS.remessas, JSON.stringify(remessas));
+        } catch (e) { console.warn('Erro ao salvar localmente', e); }
+      }
+
+      function carregarDadosLocalmente() {
+        try {
+          const pData = localStorage.getItem(LS_KEYS.produtos);
+          const vData = localStorage.getItem(LS_KEYS.vendas);
+          const cData = localStorage.getItem(LS_KEYS.clientes);
+          const rData = localStorage.getItem(LS_KEYS.remessas);
+          if (pData) produtos = JSON.parse(pData).map(p => ({ ...p, emoji: p.emoji || '🍦' }));
+          if (vData) vendasRealizadas = JSON.parse(vData);
+          if (cData) clientes = JSON.parse(cData);
+          if (rData) remessas = JSON.parse(rData);
+          return true;
+        } catch (e) { console.warn('Erro ao carregar dados locais', e); return false; }
+      }
+
+      function estaOnline() { return navigator.onLine; }
+
+      function atualizarStatusConexao() {
+        const badge = $('status-conexao');
+        if (!badge) return;
+        const online = estaOnline();
+        badge.textContent = online ? '● Online' : '● Offline';
+        badge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full ${online ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'}`;
+      }
+
+      async function sincronizarAgora() {
+        if (!supabaseClient || !estaOnline()) return;
+        const btn = $('btn-sync');
+        if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+        await syncProdutos().catch(() => {});
+        await syncVendas().catch(() => {});
+        await syncClientes().catch(() => {});
+        await syncRemessas().catch(() => {});
+        if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '🔄'; btn.disabled = false; }, 2000); }
+        atualizarStatusConexao();
+        estavaOffline = false;
+      }
+
+      window.addEventListener('online', () => {
+        atualizarStatusConexao();
+        sincronizarAgora();
+      });
+
+      window.addEventListener('offline', () => {
+        estavaOffline = true;
+        atualizarStatusConexao();
+      });
+
       // ================= DADOS (Supabase) =================
       async function syncProdutos() {
-        if (!supabaseClient) return;
         try {
-          for (const p of produtos) {
-            if (p.id) {
-              await supabaseClient.from('produtos').upsert({
-                id: p.id, nome: p.nome, categoria: p.categoria,
-                preco: p.preco, preco_revenda: p.preco_revenda || null,
-                custo: p.custo || 0,
-                estoque: p.estoque, estoque_minimo: p.estoque_minimo,
-                emoji: p.emoji || '', imagem: p.imagem || null,
-                tamanho: p.tamanho || null
-              }, { onConflict: 'id' });
-            } else {
-              const { data } = await supabaseClient.from('produtos').insert({
-                nome: p.nome, categoria: p.categoria, preco: p.preco,
-                preco_revenda: p.preco_revenda || null,
-                custo: p.custo || 0, estoque: p.estoque,
-                estoque_minimo: p.estoque_minimo, emoji: p.emoji || '',
-                imagem: p.imagem || null, tamanho: p.tamanho || null
-              }).select('id').single();
-              if (data) p.id = data.id;
+          if (supabaseClient && estaOnline()) {
+            for (const p of produtos) {
+              if (p.id) {
+                await supabaseClient.from('produtos').upsert({
+                  id: p.id, nome: p.nome, categoria: p.categoria,
+                  preco: p.preco, preco_revenda: p.preco_revenda || null,
+                  custo: p.custo || 0,
+                  estoque: p.estoque, estoque_minimo: p.estoque_minimo,
+                  emoji: p.emoji || '', imagem: p.imagem || null,
+                  tamanho: p.tamanho || null
+                }, { onConflict: 'id' });
+              } else {
+                const { data } = await supabaseClient.from('produtos').insert({
+                  nome: p.nome, categoria: p.categoria, preco: p.preco,
+                  preco_revenda: p.preco_revenda || null,
+                  custo: p.custo || 0, estoque: p.estoque,
+                  estoque_minimo: p.estoque_minimo, emoji: p.emoji || '',
+                  imagem: p.imagem || null, tamanho: p.tamanho || null
+                }).select('id').single();
+                if (data) p.id = data.id;
+              }
             }
           }
         } catch(e) { console.error('syncProdutos', e); }
+        salvarDadosLocalmente();
       }
 
       async function syncVendas() {
-        if (!supabaseClient) return;
         try {
-          await supabaseClient.from('vendas').upsert(
-            vendasRealizadas.map(v => ({
-              id: v.id, valor_total: v.valor_total,
-              created_at: v.created_at, metodo_pagamento: v.metodo,
-              produtos_vendidos: v.produtos_vendidos || ''
-            })),
-            { onConflict: 'id' }
-          );
+          if (supabaseClient && estaOnline()) {
+            await supabaseClient.from('vendas').upsert(
+              vendasRealizadas.map(v => ({
+                id: v.id, valor_total: v.valor_total,
+                created_at: v.created_at, metodo_pagamento: v.metodo,
+                produtos_vendidos: v.produtos_vendidos || ''
+              })),
+              { onConflict: 'id' }
+            );
+          }
         } catch(e) { console.error('syncVendas', e); }
+        salvarDadosLocalmente();
       }
 
       async function syncClientes() {
-        if (!supabaseClient) return;
         try {
-          await supabaseClient.from('clientes').upsert(
-            clientes.map(c => ({
-              id: c.id, nome: c.nome, cpf: c.cpf || null,
-              rua: c.rua || null, numero: c.numero || null,
-              bairro: c.bairro || null, cidade: c.cidade || null,
-              endereco: c.endereco || null, telefone: c.telefone || null,
-              observacoes: c.observacoes || null,
-              data_cadastro: c.data_cadastro || null,
-              data_contrato: c.data_contrato || null
-            })),
-            { onConflict: 'id' }
-          );
+          if (supabaseClient && estaOnline()) {
+            await supabaseClient.from('clientes').upsert(
+              clientes.map(c => ({
+                id: c.id, nome: c.nome, cpf: c.cpf || null,
+                rua: c.rua || null, numero: c.numero || null,
+                bairro: c.bairro || null, cidade: c.cidade || null,
+                endereco: c.endereco || null, telefone: c.telefone || null,
+                observacoes: c.observacoes || null,
+                data_cadastro: c.data_cadastro || null,
+                data_contrato: c.data_contrato || null
+              })),
+              { onConflict: 'id' }
+            );
+          }
         } catch(e) { console.error('syncClientes', e); }
+        salvarDadosLocalmente();
       }
 
       async function syncRemessas() {
-        if (!supabaseClient) return;
         try {
-          await supabaseClient.from('remessas').upsert(
-            remessas.map(r => ({
-              id: r.id, cliente_id: r.cliente_id, data: r.data,
-              produtos: r.produtos, total: r.total,
-              pago: r.pago || false, data_pagamento: r.data_pagamento || null
-            })),
-            { onConflict: 'id' }
-          );
+          if (supabaseClient && estaOnline()) {
+            await supabaseClient.from('remessas').upsert(
+              remessas.map(r => ({
+                id: r.id, cliente_id: r.cliente_id, data: r.data,
+                produtos: r.produtos, total: r.total,
+                pago: r.pago || false, data_pagamento: r.data_pagamento || null
+              })),
+              { onConflict: 'id' }
+            );
+          }
         } catch(e) { console.error('syncRemessas', e); }
+        salvarDadosLocalmente();
       }
 
       async function deletarVendaDB(id) {
-        if (!supabaseClient) return;
+        if (!supabaseClient || !estaOnline()) { salvarDadosLocalmente(); return; }
         try { await supabaseClient.from('vendas').delete().eq('id', id); } catch(e) {}
+        salvarDadosLocalmente();
       }
 
       async function deletarClienteDB(id) {
-        if (!supabaseClient) return;
+        if (!supabaseClient || !estaOnline()) { salvarDadosLocalmente(); return; }
         try { await supabaseClient.from('clientes').delete().eq('id', id); } catch(e) {}
+        salvarDadosLocalmente();
       }
 
       async function deletarProdutoDB(id) {
-        if (!supabaseClient) return;
+        if (!supabaseClient || !estaOnline()) { salvarDadosLocalmente(); return; }
         try { await supabaseClient.from('produtos').delete().eq('id', id); } catch(e) {}
+        salvarDadosLocalmente();
       }
 
       let produtos = [];
@@ -797,12 +870,16 @@
       // ================= DADOS =================
       async function carregarDadosDoBanco() {
         try { await supabaseReady; } catch (_) {}
-        if (!supabaseClient) return;
+        if (!supabaseClient || !estaOnline()) {
+          carregarDadosLocalmente();
+          return;
+        }
         try {
           const { data: pData } = await supabaseClient.from('produtos').select('*');
           if (pData && pData.length > 0) { produtos = pData.map(p => ({ ...p, emoji: p.emoji || '🍦' })); }
           if ((!pData || pData.length === 0)) {
             await semearDadosIniciais();
+            salvarDadosLocalmente();
             return;
           }
           const { data: vData } = await supabaseClient.from('vendas').select('*').order('created_at', { ascending: false });
@@ -816,7 +893,11 @@
           if (cData && cData.length > 0) { clientes = cData; }
           const { data: rData } = await supabaseClient.from('remessas').select('*').order('data', { ascending: false });
           if (rData && rData.length > 0) { remessas = rData; }
-        } catch (e) { console.error('carregarDadosDoBanco', e); }
+          salvarDadosLocalmente();
+        } catch (e) {
+          console.error('carregarDadosDoBanco falhou, usando dados locais', e);
+          carregarDadosLocalmente();
+        }
       }
 
       function semearDadosIniciais() {
@@ -912,6 +993,11 @@
           painel.style.display = 'none';
         }
       });
+
+      // Inicializa status de conexão
+      atualizarStatusConexao();
+      const btnSync = $('btn-sync');
+      if (btnSync) btnSync.addEventListener('click', sincronizarAgora);
 
       // ================= CADASTRO =================
       $('btn-cadastro').addEventListener('click', () => {
