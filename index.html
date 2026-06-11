@@ -521,7 +521,7 @@
         <button id="btn-fechar-pedido" class="btn-press w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
       </div>
       <div class="p-6 space-y-4">
-        <p class="text-xs text-gray-400">Itens com estoque abaixo do mínimo — quantidades sugeridas para reposição.</p>
+        <p class="text-xs text-gray-400">Itens com estoque abaixo do mínimo — quantidades sugeridas baseadas no <strong>giro de vendas dos últimos 30 dias</strong>.</p>
         <div id="lista-pedido" class="space-y-3"></div>
         <div class="flex gap-2 sticky bottom-0 bg-white pt-3">
           <button id="btn-exportar-pedido" class="btn-press flex-1 bg-white border border-[#7C5862] text-[#7C5862] py-3.5 rounded-xl font-bold text-sm">📥 Exportar CSV</button>
@@ -1672,14 +1672,50 @@
         }
       }
 
-      function calcularQtdSugerida(p) {
+      function calcularVendasProdutos() {
+        const trintaDias = new Date();
+        trintaDias.setDate(trintaDias.getDate() - 30);
+        const vendas = {};
+        produtos.forEach(p => vendas[p.id] = 0);
+        vendasRealizadas.forEach(v => {
+          if (!v.created_at || new Date(v.created_at) < trintaDias) return;
+          if (!v.produtos_vendidos) return;
+          v.produtos_vendidos.split(',').forEach(part => {
+            const m = part.trim().match(/(\d+)x\s*(.+)/);
+            if (!m) return;
+            const nome = m[2].trim().toLowerCase();
+            const qtd = parseInt(m[1]);
+            const prod = produtos.find(p => p.nome.toLowerCase() === nome);
+            if (prod) vendas[prod.id] = (vendas[prod.id] || 0) + qtd;
+          });
+        });
+        return vendas;
+      }
+
+      function calcularQtdSugerida(p, vendasPorProduto) {
         if (p.estoque > p.estoque_minimo) return 0;
-        const alvo = p.estoque_minimo * 3;
-        let qtd = alvo - p.estoque;
-        qtd = Math.max(qtd, p.estoque_minimo);
+        const vendidos = vendasPorProduto ? (vendasPorProduto[p.id] || 0) : -1;
+        let alvo;
+        if (vendidos <= 0) {
+          alvo = p.estoque_minimo * 1.5;
+        } else if (vendidos <= 10) {
+          alvo = p.estoque_minimo * 2.5;
+        } else if (vendidos <= 30) {
+          alvo = p.estoque_minimo * 4;
+        } else {
+          alvo = p.estoque_minimo * 6;
+        }
+        let qtd = Math.max(alvo - p.estoque, p.estoque_minimo);
         if (qtd <= 5) return Math.ceil(qtd);
         if (qtd <= 20) return Math.ceil(qtd / 5) * 5;
         return Math.ceil(qtd / 10) * 10;
+      }
+
+      function classificarGiro(vendidos) {
+        if (vendidos == null || vendidos <= 0) return { label: 'Sem saída', cor: 'bg-red-100 text-red-600', icone: '⬇️' };
+        if (vendidos <= 10) return { label: 'Baixa saída', cor: 'bg-amber-100 text-amber-600', icone: '➡️' };
+        if (vendidos <= 30) return { label: 'Média saída', cor: 'bg-blue-100 text-blue-600', icone: '📈' };
+        return { label: 'Alta saída', cor: 'bg-emerald-100 text-emerald-600', icone: '🔥' };
       }
 
       function abrirModalPedido() {
@@ -1694,28 +1730,34 @@
           return;
         }
 
+        const vendasPorProduto = calcularVendasProdutos();
         pedidoQuantidades = {};
-        baixos.forEach(p => { pedidoQuantidades[p.id] = calcularQtdSugerida(p); });
+        baixos.forEach(p => { pedidoQuantidades[p.id] = calcularQtdSugerida(p, vendasPorProduto); });
 
         container.innerHTML = baixos.map(p => {
           const qtd = pedidoQuantidades[p.id];
           const custoTotal = (p.custo || 0) * qtd;
+          const vendidos = vendasPorProduto[p.id] || 0;
+          const giro = classificarGiro(vendidos);
           return `
-            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center justify-between">
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-lg">${p.emoji || '🍦'}</span>
-                  <div>
-                    <p class="text-sm font-bold text-gray-800 truncate">${p.nome}</p>
+            <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <span class="text-lg flex-shrink-0">${p.emoji || '🍦'}</span>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <p class="text-sm font-bold text-gray-800 truncate">${p.nome}</p>
+                      <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${giro.cor} whitespace-nowrap">${giro.icone} ${giro.label} (${vendidos} un/30d)</span>
+                    </div>
                     <p class="text-[10px] text-gray-400">${p.categoria} · Estoque: <span class="text-red-500 font-bold">${p.estoque}</span> / Mín: ${p.estoque_minimo}</p>
                   </div>
                 </div>
-              </div>
-              <div class="flex items-center gap-2 ml-3 flex-shrink-0">
-                <button data-id="${p.id}" data-d="-1" class="btn-qtd-pedido btn-press w-7 h-7 bg-white rounded-lg text-xs font-bold text-gray-500 border border-gray-200">−</button>
-                <span id="qtd-pedido-${p.id}" class="w-8 text-center font-extrabold text-sm text-[#4A373D]">${qtd}</span>
-                <button data-id="${p.id}" data-d="1" class="btn-qtd-pedido btn-press w-7 h-7 bg-white rounded-lg text-xs font-bold text-gray-500 border border-gray-200">+</button>
-                <span class="text-[10px] text-gray-400 w-14 text-right">R$ ${custoTotal.toFixed(2)}</span>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button data-id="${p.id}" data-d="-1" class="btn-qtd-pedido btn-press w-7 h-7 bg-white rounded-lg text-xs font-bold text-gray-500 border border-gray-200">−</button>
+                  <span id="qtd-pedido-${p.id}" class="w-8 text-center font-extrabold text-sm text-[#4A373D]">${qtd}</span>
+                  <button data-id="${p.id}" data-d="1" class="btn-qtd-pedido btn-press w-7 h-7 bg-white rounded-lg text-xs font-bold text-gray-500 border border-gray-200">+</button>
+                  <span class="text-[10px] text-gray-400 w-14 text-right">R$ ${custoTotal.toFixed(2)}</span>
+                </div>
               </div>
             </div>
           `;
@@ -1738,16 +1780,18 @@
       function exportarCSVPedido() {
         const baixos = produtos.filter(p => p.estoque <= p.estoque_minimo);
         if (baixos.length === 0) return;
-        let csv = "Produto,Categoria,Estoque Atual,Estoque Mínimo,Qtd Pedido,Valor Estimado\n";
+        const vendasPorProduto = calcularVendasProdutos();
+        let csv = "Produto,Categoria,Estoque Atual,Estoque Mínimo,Vendas (30d),Qtd Pedido,Valor Estimado\n";
         let totalCusto = 0;
         baixos.forEach(p => {
           const qtd = pedidoQuantidades[p.id] || 0;
           if (qtd <= 0) return;
           const custo = (p.custo || 0) * qtd;
+          const vendidos = vendasPorProduto[p.id] || 0;
           totalCusto += custo;
-          csv += `"${p.nome}","${p.categoria}",${p.estoque},${p.estoque_minimo},${qtd},${custo.toFixed(2).replace('.',',')}\n`;
+          csv += `"${p.nome}","${p.categoria}",${p.estoque},${p.estoque_minimo},${vendidos},${qtd},${custo.toFixed(2).replace('.',',')}\n`;
         });
-        csv += `,,,,,"${totalCusto.toFixed(2).replace('.',',')}"\n`;
+        csv += `,,,,,,${totalCusto.toFixed(2).replace('.',',')}\n`;
         const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
