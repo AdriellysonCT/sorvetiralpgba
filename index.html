@@ -611,7 +611,7 @@
       }
 
       async function sincronizarAgora() {
-        if (!supabaseClient || !estaOnline()) return;
+        if (!supabaseClient) return;
         const btn = $('btn-sync');
         if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
         await syncProdutos().catch(() => {});
@@ -636,10 +636,10 @@
       // ================= DADOS (Supabase) =================
       async function syncProdutos() {
         try {
-          if (supabaseClient && estaOnline()) {
+          if (supabaseClient) {
             for (const p of produtos) {
               if (p.id) {
-                await supabaseClient.from('produtos').upsert({
+                const { error } = await supabaseClient.from('produtos').upsert({
                   id: p.id, nome: p.nome, categoria: p.categoria,
                   preco: p.preco, preco_revenda: p.preco_revenda || null,
                   custo: p.custo || 0,
@@ -647,14 +647,16 @@
                   emoji: p.emoji || '', imagem: p.imagem || null,
                   tamanho: p.tamanho || null
                 }, { onConflict: 'id' });
+                if (error) console.error('syncProdutos upsert', error);
               } else {
-                const { data } = await supabaseClient.from('produtos').insert({
+                const { data, error } = await supabaseClient.from('produtos').insert({
                   nome: p.nome, categoria: p.categoria, preco: p.preco,
                   preco_revenda: p.preco_revenda || null,
                   custo: p.custo || 0, estoque: p.estoque,
                   estoque_minimo: p.estoque_minimo, emoji: p.emoji || '',
                   imagem: p.imagem || null, tamanho: p.tamanho || null
                 }).select('id').single();
+                if (error) console.error('syncProdutos insert', error);
                 if (data) p.id = data.id;
               }
             }
@@ -665,8 +667,8 @@
 
       async function syncVendas() {
         try {
-          if (supabaseClient && estaOnline()) {
-            await supabaseClient.from('vendas').upsert(
+          if (supabaseClient) {
+            const { error } = await supabaseClient.from('vendas').upsert(
               vendasRealizadas.map(v => ({
                 id: v.id, valor_total: v.valor_total,
                 created_at: v.created_at, metodo_pagamento: v.metodo,
@@ -674,6 +676,7 @@
               })),
               { onConflict: 'id' }
             );
+            if (error) console.error('syncVendas', error);
           }
         } catch(e) { console.error('syncVendas', e); }
         salvarDadosLocalmente();
@@ -681,8 +684,8 @@
 
       async function syncClientes() {
         try {
-          if (supabaseClient && estaOnline()) {
-            await supabaseClient.from('clientes').upsert(
+          if (supabaseClient) {
+            const { error } = await supabaseClient.from('clientes').upsert(
               clientes.map(c => ({
                 id: c.id, nome: c.nome, cpf: c.cpf || null,
                 rua: c.rua || null, numero: c.numero || null,
@@ -694,6 +697,7 @@
               })),
               { onConflict: 'id' }
             );
+            if (error) console.error('syncClientes', error);
           }
         } catch(e) { console.error('syncClientes', e); }
         salvarDadosLocalmente();
@@ -701,8 +705,8 @@
 
       async function syncRemessas() {
         try {
-          if (supabaseClient && estaOnline()) {
-            await supabaseClient.from('remessas').upsert(
+          if (supabaseClient) {
+            const { error } = await supabaseClient.from('remessas').upsert(
               remessas.map(r => ({
                 id: r.id, cliente_id: r.cliente_id, data: r.data,
                 produtos: r.produtos, total: r.total,
@@ -710,25 +714,26 @@
               })),
               { onConflict: 'id' }
             );
+            if (error) console.error('syncRemessas', error);
           }
         } catch(e) { console.error('syncRemessas', e); }
         salvarDadosLocalmente();
       }
 
       async function deletarVendaDB(id) {
-        if (!supabaseClient || !estaOnline()) { salvarDadosLocalmente(); return; }
+        if (!supabaseClient) { salvarDadosLocalmente(); return; }
         try { await supabaseClient.from('vendas').delete().eq('id', id); } catch(e) {}
         salvarDadosLocalmente();
       }
 
       async function deletarClienteDB(id) {
-        if (!supabaseClient || !estaOnline()) { salvarDadosLocalmente(); return; }
+        if (!supabaseClient) { salvarDadosLocalmente(); return; }
         try { await supabaseClient.from('clientes').delete().eq('id', id); } catch(e) {}
         salvarDadosLocalmente();
       }
 
       async function deletarProdutoDB(id) {
-        if (!supabaseClient || !estaOnline()) { salvarDadosLocalmente(); return; }
+        if (!supabaseClient) { salvarDadosLocalmente(); return; }
         try { await supabaseClient.from('produtos').delete().eq('id', id); } catch(e) {}
         salvarDadosLocalmente();
       }
@@ -878,7 +883,7 @@
       // ================= DADOS =================
       async function carregarDadosDoBanco() {
         try { await supabaseReady; } catch (_) {}
-        if (!supabaseClient || !estaOnline()) {
+        if (!supabaseClient) {
           carregarDadosLocalmente();
           return;
         }
