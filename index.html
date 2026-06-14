@@ -337,6 +337,42 @@
     </div>
   </div>
 
+  <!-- MODAL EDIÇÃO MÚLTIPLA -->
+  <div id="modal-mult" style="display:none" class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="modal-box bg-white rounded-[28px] w-full max-w-sm shadow-2xl fade-in mx-4">
+      <div class="p-6 space-y-4">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-bold text-gray-800">✏️ Editar Múltiplos</h2>
+          <button id="btn-fechar-modal-mult" class="btn-press w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">✕</button>
+        </div>
+        <p id="mult-info" class="text-xs text-gray-400">Aplicar alterações a <strong>0 produtos</strong>.</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Preço Venda (R$)</label>
+            <input type="number" id="mult-preco" step="0.10" min="0" placeholder="Manter" inputmode="decimal" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Preço Revenda (R$)</label>
+            <input type="number" id="mult-revenda" step="0.10" min="0" placeholder="Manter" inputmode="decimal" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Custo (R$)</label>
+            <input type="number" id="mult-custo" step="0.10" min="0" placeholder="Manter" inputmode="decimal" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Estoque</label>
+            <input type="number" id="mult-estoque" min="0" placeholder="Manter" inputmode="numeric" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">Estoque Mínimo</label>
+            <input type="number" id="mult-minimo" min="1" placeholder="Manter" inputmode="numeric" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+          </div>
+        </div>
+        <button id="btn-aplicar-mult-modal" class="btn-press w-full bg-[#A3E635] text-[#4A373D] py-3.5 rounded-xl font-bold text-sm">✓ Aplicar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL CLIENTE -->
   <div id="modal-cliente" style="display:none" class="modal-overlay fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 lg:items-center">
     <div class="modal-box bg-white rounded-[28px] w-full max-w-md shadow-2xl fade-in mx-4 lg:max-w-lg" style="max-height:85vh; overflow-y:auto;">
@@ -1539,6 +1575,8 @@
       // ================= ESTOQUE =================
       let filtroCategoriaEstoque = 'Todas';
       let ordenacaoEstoque = 'nome';
+      let modoMultiplo = false;
+      let idsSelecionados = new Set();
 
       function carregarEstoque(el) {
         const totalItens = produtos.reduce((sum, p) => sum + p.estoque, 0);
@@ -1559,6 +1597,7 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <button id="btn-gerar-pedido" class="btn-press bg-orange-50 border border-orange-200 text-orange-600 px-3 py-3 rounded-xl text-xs font-bold hover:bg-orange-100 transition-all flex items-center gap-1.5">📋 <span class="hidden sm:inline">Pedido</span></button>
                 <button id="btn-exportar-csv-est" class="btn-press bg-white border border-gray-100 text-gray-500 px-3 py-3 rounded-xl text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex items-center gap-1.5">📥 <span class="hidden sm:inline">CSV</span></button>
+                <button id="btn-multiplo-est" class="btn-press ${modoMultiplo ? 'bg-[#7C5862] text-white' : 'bg-white border border-gray-100 text-gray-500'} px-3 py-3 rounded-xl text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex items-center gap-1.5">☑️ <span class="hidden sm:inline">Múltiplos</span></button>
                 <button id="btn-flutuante-add" class="btn-press bg-[#A3E635] text-[#4A373D] px-4 py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#92CF2E] transition-all flex items-center gap-2">
                   <span class="text-lg">+</span> <span class="hidden sm:inline">Novo Produto</span>
                 </button>
@@ -1627,6 +1666,12 @@
             </div>
 
             <div id="lista-produtos-container" class="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0"></div>
+
+            <div id="barra-multipla" style="display:none" class="fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 bg-[#4A373D] text-white rounded-2xl shadow-2xl px-4 py-3 flex items-center gap-3 z-40 text-sm whitespace-nowrap">
+              <span id="mult-selecionados">0 selecionados</span>
+              <button id="btn-aplicar-mult" class="btn-press bg-[#A3E635] text-[#4A373D] px-4 py-2 rounded-xl font-bold text-xs">✏️ Editar</button>
+              <button id="btn-limpar-mult" class="btn-press bg-white/20 text-white px-3 py-2 rounded-xl font-bold text-xs">✕ Limpar</button>
+            </div>
           </div>
         `;
 
@@ -1641,6 +1686,29 @@
         if (btnPedido) btnPedido.addEventListener('click', abrirModalPedido);
         const btnCsvEst = $('btn-exportar-csv-est');
         if (btnCsvEst) btnCsvEst.addEventListener('click', exportarCSVEstoque);
+
+        // Multi-edit toggle
+        const btnMult = $('btn-multiplo-est');
+        if (btnMult) btnMult.addEventListener('click', function() {
+          modoMultiplo = !modoMultiplo;
+          if (!modoMultiplo) { idsSelecionados.clear(); }
+          const barra = $('barra-multipla');
+          if (barra) barra.style.display = 'none';
+          filtrarEstoque();
+        });
+
+        // Multi-edit bar buttons
+        $('btn-aplicar-mult').addEventListener('click', abrirModalMultiplo);
+        $('btn-limpar-mult').addEventListener('click', function() {
+          idsSelecionados.clear();
+          const barra = $('barra-multipla');
+          if (barra) barra.style.display = 'none';
+          filtrarEstoque();
+        });
+
+        // Multi-edit modal buttons
+        $('btn-fechar-modal-mult').addEventListener('click', () => $('modal-mult').style.display = 'none');
+        $('btn-aplicar-mult-modal').addEventListener('click', aplicarEdicaoMultipla);
 
         document.querySelectorAll('.btn-cat-est').forEach(btn => {
           btn.addEventListener('click', function() {
@@ -1673,10 +1741,16 @@
           const custo = p.custo || 0;
           const margem = p.preco > 0 ? ((p.preco - custo) / p.preco * 100) : 0;
           const lucroUn = (p.preco - custo);
+          const selecionado = idsSelecionados.has(p.id);
           return `
-            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 hover:border-gray-200 transition-all flex flex-col gap-3">
+            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 hover:border-gray-200 transition-all flex flex-col gap-3 ${modoMultiplo && selecionado ? 'ring-2 ring-[#7C5862] bg-[#7C5862]/5' : ''}">
               <!-- Top section: Image, Title, Category and Status -->
               <div class="flex items-center gap-3">
+                ${modoMultiplo ? `
+                <label class="flex items-center justify-center cursor-pointer">
+                  <input type="checkbox" data-mult-id="${p.id}" class="w-5 h-5 rounded border-gray-300 text-[#7C5862] focus:ring-[#7C5862] cursor-pointer" ${selecionado ? 'checked' : ''}>
+                </label>
+                ` : ''}
                 <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
                   ${imgProd(p, 'w-full h-full object-cover')}
                 </div>
@@ -1716,7 +1790,7 @@
                 </div>
               </div>
 
-              <!-- Actions section: Clean, responsive buttons -->
+              <!-- Actions section -->
               <div class="flex items-center justify-between border-t border-gray-50 pt-3 mt-1 gap-2">
                 <div class="flex items-center gap-1.5">
                   <button data-id="${p.id}" data-action="sub" class="btn-action-est btn-press w-9 h-9 bg-gray-50 rounded-xl text-xs font-bold flex items-center justify-center text-gray-500 hover:bg-gray-100" title="Remover 1">−</button>
@@ -1751,6 +1825,21 @@
             }
           });
         });
+        if (modoMultiplo) {
+          container.querySelectorAll('input[data-mult-id]').forEach(cb => {
+            cb.addEventListener('change', function() {
+              const id = parseInt(this.getAttribute('data-mult-id'));
+              if (this.checked) idsSelecionados.add(id);
+              else idsSelecionados.delete(id);
+              atualizarBarraMultipla();
+              const card = this.closest('div.bg-white');
+              if (card) card.classList.toggle('ring-2', this.checked);
+              if (card) card.classList.toggle('ring-[#7C5862]', this.checked);
+              if (card) card.classList.toggle('bg-[#7C5862]/5', this.checked);
+            });
+          });
+          atualizarBarraMultipla();
+        }
       }
 
       function filtrarEstoque() {
@@ -1776,6 +1865,45 @@
           syncProdutos();
           carregarEstoque(content);
         }
+      }
+
+      function atualizarBarraMultipla() {
+        const barra = $('barra-multipla');
+        if (!barra) return;
+        const total = idsSelecionados.size;
+        $('mult-selecionados').textContent = `${total} selecionado${total !== 1 ? 's' : ''}`;
+        barra.style.display = total > 0 ? 'flex' : 'none';
+      }
+
+      function abrirModalMultiplo() {
+        if (idsSelecionados.size === 0) return;
+        $('mult-info').innerHTML = `Aplicar alterações a <strong>${idsSelecionados.size} produto${idsSelecionados.size !== 1 ? 's' : ''}</strong>.`;
+        ['mult-preco','mult-revenda','mult-custo','mult-estoque','mult-minimo'].forEach(id => $(id).value = '');
+        $('modal-mult').style.display = 'flex';
+      }
+
+      function aplicarEdicaoMultipla() {
+        const campos = {
+          preco: { el: $('mult-preco'), fn: v => parseFloat(v) || 0 },
+          preco_revenda: { el: $('mult-revenda'), fn: v => v ? (parseFloat(v) || null) : null },
+          custo: { el: $('mult-custo'), fn: v => parseFloat(v) || 0 },
+          estoque: { el: $('mult-estoque'), fn: v => parseInt(v) || 0 },
+          estoque_minimo: { el: $('mult-minimo'), fn: v => parseInt(v) || 0 }
+        };
+        let aplicou = false;
+        idsSelecionados.forEach(id => {
+          const prod = produtos.find(p => p.id === id);
+          if (!prod) return;
+          Object.keys(campos).forEach(key => {
+            const val = campos[key].el.value.trim();
+            if (val !== '') { prod[key] = campos[key].fn(val); aplicou = true; }
+          });
+        });
+        if (aplicou) syncProdutos();
+        $('modal-mult').style.display = 'none';
+        idsSelecionados.clear();
+        $('barra-multipla').style.display = 'none';
+        carregarEstoque(content);
       }
 
       function calcularVendasProdutos() {
