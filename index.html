@@ -362,6 +362,10 @@
           <div>
             <label class="block text-xs font-semibold text-gray-500 mb-1">Estoque</label>
             <input type="number" id="mult-estoque" min="0" placeholder="Manter" inputmode="numeric" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+            <label class="flex items-center gap-2 mt-1.5 cursor-pointer">
+              <input type="checkbox" id="mult-somar-estoque" class="w-3.5 h-3.5 rounded border-gray-300 text-[#7C5862] focus:ring-[#7C5862] cursor-pointer">
+              <span class="text-[10px] text-gray-400">Somar ao estoque atual</span>
+            </label>
           </div>
           <div>
             <label class="block text-xs font-semibold text-gray-500 mb-1">Estoque Mínimo</label>
@@ -1879,10 +1883,12 @@
         if (idsSelecionados.size === 0) return;
         $('mult-info').innerHTML = `Aplicar alterações a <strong>${idsSelecionados.size} produto${idsSelecionados.size !== 1 ? 's' : ''}</strong>.`;
         ['mult-preco','mult-revenda','mult-custo','mult-estoque','mult-minimo'].forEach(id => $(id).value = '');
+        $('mult-somar-estoque').checked = false;
         $('modal-mult').style.display = 'flex';
       }
 
       function aplicarEdicaoMultipla() {
+        const somarEstoque = $('mult-somar-estoque').checked;
         const campos = {
           preco: { el: $('mult-preco'), fn: v => parseFloat(v) || 0 },
           preco_revenda: { el: $('mult-revenda'), fn: v => v ? (parseFloat(v) || null) : null },
@@ -1896,7 +1902,11 @@
           if (!prod) return;
           Object.keys(campos).forEach(key => {
             const val = campos[key].el.value.trim();
-            if (val !== '') { prod[key] = campos[key].fn(val); aplicou = true; }
+            if (val === '') return;
+            let novo = campos[key].fn(val);
+            if (key === 'estoque' && somarEstoque) novo = prod.estoque + novo;
+            prod[key] = novo;
+            aplicou = true;
           });
         });
         if (aplicou) syncProdutos();
